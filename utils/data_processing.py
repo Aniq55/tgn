@@ -2,6 +2,21 @@ import numpy as np
 import random
 import pandas as pd
 
+split_times = {
+    "reddit": (1882469.265, 2261813.658),
+    "Contacts": (1625100, 2047800),
+    "wikipedia": (1862652.1, 2218288.6),
+    "uci": (3834800.6, 6714558.3),
+    "SocialEvo": (16988541, 18711359),
+    "mooc": (1917235, 2250151.6),
+    "lastfm": (103764807.2, 120235473),
+    "enron": (83843725.6, 93431801),
+    "Flights": (90, 106),
+    "UNvote": (1830297600, 2019686400),
+    "CanParl": (283996800, 347155200),
+    "USLegis": (8, 10),
+    "UNtrade": (757382400, 883612800)
+}
 
 class Data:
   def __init__(self, sources, destinations, timestamps, edge_idxs, labels):
@@ -45,21 +60,31 @@ def get_data_node_classification(dataset_name, use_validation=False):
                   edge_idxs[val_mask], labels[val_mask])
 
   test_data = Data(sources[test_mask], destinations[test_mask], timestamps[test_mask],
-                   edge_idxs[test_mask], labels[test_mask])
+                  edge_idxs[test_mask], labels[test_mask])
 
   return full_data, node_features, edge_features, train_data, val_data, test_data
 
 
-def get_data(dataset_name, different_new_nodes_between_val_and_test=False, randomize_features=False):
+def get_data(dataset_name, distortion='', different_new_nodes_between_val_and_test=False, randomize_features=False):
   ### Load data and train val test split
-  graph_df = pd.read_csv('./data/ml_{}.csv'.format(dataset_name))
-  edge_features = np.load('./data/ml_{}.npy'.format(dataset_name))
-  node_features = np.load('./data/ml_{}_node.npy'.format(dataset_name)) 
+  
+  graph_df = pd.read_csv(f'/home/chri6578/Documents/gttp/data/{dataset_name}/{distortion}ml_{dataset_name}.csv')
+  edge_features = np.load(f'/home/chri6578/Documents/gttp/data/{dataset_name}/{distortion}ml_{dataset_name}.npy')
+  node_features = np.load(f'/home/chri6578/Documents/gttp/data/{dataset_name}/ml_{dataset_name}_node.npy')
+
+  # val_time, test_time = list(np.quantile(g_df.ts, [0.70, 0.85]))
+  # val_time , test_time = 1862652.1, 2218288.6 # wikipedia
+  val_time, test_time = split_times[dataset_name]
+  
+  
+  # graph_df = pd.read_csv('./data/ml_{}.csv'.format(dataset_name))
+  # edge_features = np.load('./data/ml_{}.npy'.format(dataset_name))
+  # node_features = np.load('./data/ml_{}_node.npy'.format(dataset_name)) 
     
   if randomize_features:
     node_features = np.random.rand(node_features.shape[0], node_features.shape[1])
 
-  val_time, test_time = list(np.quantile(graph_df.ts, [0.70, 0.85]))
+  # val_time, test_time = list(np.quantile(graph_df.ts, [0.70, 0.85]))
 
   sources = graph_df.u.values
   destinations = graph_df.i.values
@@ -128,12 +153,12 @@ def get_data(dataset_name, different_new_nodes_between_val_and_test=False, rando
                   edge_idxs[val_mask], labels[val_mask])
 
   test_data = Data(sources[test_mask], destinations[test_mask], timestamps[test_mask],
-                   edge_idxs[test_mask], labels[test_mask])
+                  edge_idxs[test_mask], labels[test_mask])
 
   # validation and test with edges that at least has one new node (not in training set)
   new_node_val_data = Data(sources[new_node_val_mask], destinations[new_node_val_mask],
-                           timestamps[new_node_val_mask],
-                           edge_idxs[new_node_val_mask], labels[new_node_val_mask])
+                          timestamps[new_node_val_mask],
+                          edge_idxs[new_node_val_mask], labels[new_node_val_mask])
 
   new_node_test_data = Data(sources[new_node_test_mask], destinations[new_node_test_mask],
                             timestamps[new_node_test_mask], edge_idxs[new_node_test_mask],
@@ -155,7 +180,7 @@ def get_data(dataset_name, different_new_nodes_between_val_and_test=False, rando
     len(new_test_node_set)))
 
   return node_features, edge_features, full_data, train_data, val_data, test_data, \
-         new_node_val_data, new_node_test_data
+        new_node_val_data, new_node_test_data
 
 
 def compute_time_statistics(sources, destinations, timestamps):

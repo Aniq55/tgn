@@ -42,6 +42,7 @@ parser = argparse.ArgumentParser('TGN self-supervised training')
 parser.add_argument('-d', '--data', type=str, help='Dataset name (eg. wikipedia or reddit)',
                     default='wikipedia')
 parser.add_argument('-x', '--distortion', type=str, help='distortion technique', default='')
+parser.add_argument('-y', '--loadmodel', type=str, help='distortion technique', default='')
 parser.add_argument('--modelname', type=str, help='model name', default='TGN')
 parser.add_argument('--bs', type=int, default=200, help='Batch_size')
 parser.add_argument('--prefix', type=str, default='', help='Prefix to name the checkpoints')
@@ -110,6 +111,7 @@ MESSAGE_DIM = args.message_dim
 MEMORY_DIM = MEMORY_DIM_DICT[DATA]
 DISTORTION = args.distortion
 MODEL_NAME = args.modelname
+LOAD_MODEL = args.loadmodel
 
 LOG_FILE_val = f"/home/chri6578/Documents/gttp/logs/evalcheck/{DATA}_val.log"
 LOG_FILE_test = f"/home/chri6578/Documents/gttp/logs/evalcheck/{DATA}_test.log"
@@ -120,7 +122,7 @@ loguru1.add(LOG_FILE_test, level=INFO2_LEVEL, format="{message}", filter=lambda 
 
 Path("./saved_models/").mkdir(parents=True, exist_ok=True)
 Path("./saved_checkpoints/").mkdir(parents=True, exist_ok=True)
-MODEL_SAVE_PATH = f'./saved_models/{args.prefix}-{args.data}{args.distortion}.pth'
+MODEL_SAVE_PATH = f'./saved_models/{args.prefix}-{args.data}{args.loadmodel}.pth'
 get_checkpoint_path = lambda \
     epoch: f'./saved_checkpoints/{args.prefix}-{args.data}-{epoch}.pth'
 
@@ -192,166 +194,25 @@ for i in range(args.n_runs):
             use_destination_embedding_in_message=args.use_destination_embedding_in_message,
             use_source_embedding_in_message=args.use_source_embedding_in_message,
             dyrep=args.dyrep)
-  criterion = torch.nn.BCELoss()
-  optimizer = torch.optim.Adam(tgn.parameters(), lr=LEARNING_RATE)
+  
+  # criterion = torch.nn.BCELoss()
+  # optimizer = torch.optim.Adam(tgn.parameters(), lr=LEARNING_RATE)
+  
+  # LOAD MODEL HERE
+  tgn.load_state_dict(torch.load(MODEL_SAVE_PATH))
   tgn = tgn.to(device)
+  tgn.eval()
 
   num_instance = len(train_data.sources)
   num_batch = math.ceil(num_instance / BATCH_SIZE)
 
-  logger.info('num of training instances: {}'.format(num_instance))
-  logger.info('num of batches per epoch: {}'.format(num_batch))
-  idx_list = np.arange(num_instance)
-
-  new_nodes_val_aps = []
-  val_aps = []
-  epoch_times = []
-  total_epoch_times = []
-  train_losses = []
-
-  early_stopper = EarlyStopMonitor(max_round=args.patience)
-  for epoch in range(NUM_EPOCH):
-    start_epoch = time.time()
-    ### Training
-
-    # Reinitialize memory of the model at the start of each epoch
-    if USE_MEMORY:
-      tgn.memory.__init_memory__()
-
-    # Train using only training graph
-    tgn.set_neighbor_finder(train_ngh_finder)
-    m_loss = []
-
-    logger.info('start {} epoch'.format(epoch))
-    for k in range(0, num_batch, args.backprop_every):
-      loss = 0
-      optimizer.zero_grad()
-
-      # Custom loop to allow to perform backpropagation only every a certain number of batches
-      for j in range(args.backprop_every):
-        batch_idx = k + j
-
-        if batch_idx >= num_batch:
-          continue
-
-        start_idx = batch_idx * BATCH_SIZE
-        end_idx = min(num_instance, start_idx + BATCH_SIZE)
-        sources_batch, destinations_batch = train_data.sources[start_idx:end_idx], \
-                                            train_data.destinations[start_idx:end_idx]
-        edge_idxs_batch = train_data.edge_idxs[start_idx: end_idx]
-        timestamps_batch = train_data.timestamps[start_idx:end_idx]
-
-        size = len(sources_batch)
-        _, negatives_batch = train_rand_sampler.sample(size)
-
-        with torch.no_grad():
-          pos_label = torch.ones(size, dtype=torch.float, device=device)
-          neg_label = torch.zeros(size, dtype=torch.float, device=device)
-
-        tgn = tgn.train()
-        pos_prob, neg_prob = tgn.compute_edge_probabilities(sources_batch, destinations_batch, negatives_batch,
-                                                            timestamps_batch, edge_idxs_batch, NUM_NEIGHBORS)
-
-        loss += criterion(pos_prob.squeeze(), pos_label) + criterion(neg_prob.squeeze(), neg_label)
-
-      loss /= args.backprop_every
-
-      loss.backward()
-      optimizer.step()
-      m_loss.append(loss.item())
-
-      # Detach memory after 'args.backprop_every' number of batches so we don't backpropagate to
-      # the start of time
-      if USE_MEMORY:
-        tgn.memory.detach_memory()
-
-    epoch_time = time.time() - start_epoch
-    epoch_times.append(epoch_time)
-
-    ### Validation
-    # Validation uses the full graph
-    tgn.set_neighbor_finder(full_ngh_finder)
-
-    if USE_MEMORY:
-      # Backup memory at the end of training, so later we can restore it and use it for the
-      # validation on unseen nodes
-      train_memory_backup = tgn.memory.backup_memory()
-
-    _, val_ap, val_auc = eval_edge_prediction(model=tgn,
-                                          negative_edge_sampler=val_rand_sampler,
-                                          data=val_data,
-                                          n_neighbors=NUM_NEIGHBORS)
-    if USE_MEMORY:
-      val_memory_backup = tgn.memory.backup_memory()
-      # Restore memory we had at the end of training to be used when validating on new nodes.
-      # Also backup memory after validation so it can be used for testing (since test edges are
-      # strictly later in time than validation edges)
-      tgn.memory.restore_memory(train_memory_backup)
-
-    # Validate on unseen nodes
-    _, nn_val_ap, nn_val_auc = eval_edge_prediction(model=tgn,
-                                                    negative_edge_sampler=val_rand_sampler,
-                                                    data=new_node_val_data,
-                                                    n_neighbors=NUM_NEIGHBORS)
-
-    if USE_MEMORY:
-      # Restore memory we had at the end of validation
-      tgn.memory.restore_memory(val_memory_backup)
-
-    new_nodes_val_aps.append(nn_val_ap)
-    val_aps.append(val_ap)
-    train_losses.append(np.mean(m_loss))
-
-    # Save temporary results to disk
-    pickle.dump({
-      "val_aps": val_aps,
-      "new_nodes_val_aps": new_nodes_val_aps,
-      "train_losses": train_losses,
-      "epoch_times": epoch_times,
-      "total_epoch_times": total_epoch_times
-    }, open(results_path, "wb"))
-
-    total_epoch_time = time.time() - start_epoch
-    total_epoch_times.append(total_epoch_time)
-
-    logger.info('epoch: {} took {:.2f}s'.format(epoch, total_epoch_time))
-    logger.info('Epoch mean loss: {}'.format(np.mean(m_loss)))
-    logger.info(
-      'val auc: {}, new node val auc: {}'.format(val_auc, nn_val_auc))
-    logger.info(
-      'val ap: {}, new node val ap: {}'.format(val_ap, nn_val_ap))
-
-    # Early stopping
-    if early_stopper.early_stop_check(val_ap):
-      logger.info('No improvement over {} epochs, stop training'.format(early_stopper.max_round))
-      logger.info(f'Loading the best model at epoch {early_stopper.best_epoch}')
-      best_model_path = get_checkpoint_path(early_stopper.best_epoch)
-      tgn.load_state_dict(torch.load(best_model_path))
-      logger.info(f'Loaded the best model at epoch {early_stopper.best_epoch} for inference')
-      tgn.eval()
-      break
-    else:
-      torch.save(tgn.state_dict(), get_checkpoint_path(epoch))
-
-  # Training has finished, we have loaded the best model, and we want to backup its current
-  # memory (which has seen validation edges) so that it can also be used when testing on unseen
-  # nodes
-  
-  if USE_MEMORY:
-      # Restore memory we had at the end of validation
-      tgn.memory.restore_memory(train_memory_backup)
-  
+  tgn.set_neighbor_finder(full_ngh_finder)
   ### Validation
   val_acc, val_ap, val_auc = eval_edge_prediction(model=tgn,
                                         negative_edge_sampler=val_rand_sampler,
                                         data=val_data,
                                         n_neighbors=NUM_NEIGHBORS)
 
-  if USE_MEMORY:
-      # Restore memory we had at the end of validation
-      tgn.memory.restore_memory(train_memory_backup)
-    
-  # Validate on unseen nodes
   nn_val_acc, nn_val_ap, nn_val_auc = eval_edge_prediction(model=tgn,
                                                   negative_edge_sampler=val_rand_sampler,
                                                   data=new_node_val_data,
@@ -362,22 +223,22 @@ for i in range(args.n_runs):
     DISTORTION_B = DISTORTION.split('_')[-2]
   else:
     DISTORTION_A, DISTORTION_B = '', ''
+    
+  # MODEL \t DISTORTION \t SAMPLE \t SPLIT \t TYPE \t ACC \t AUC \t AP \t EPOCH
+  info1_message = [MODEL_NAME, DISTORTION.split('_')[0], DISTORTION.split('_')[-2], "Val", "tdv", 
+                  f"{val_acc:.4f}", f"{val_auc:.4f}", f"{val_ap:.4f}", f"{0}"]
+  loguru1.log("INFO1", '\t'.join(info1_message))
+  info1_message = [MODEL_NAME, DISTORTION.split('_')[0], DISTORTION.split('_')[-2], "Val", "idv", 
+                  f"{nn_val_acc:.4f}", f"{nn_val_auc:.4f}", f"{nn_val_ap:.4f}", f"{0}"]
+  loguru1.log("INFO1", '\t'.join(info1_message))
   
 
-  if USE_MEMORY:
-    val_memory_backup = tgn.memory.backup_memory()
-    
-  
   ### Test
   tgn.embedding_module.neighbor_finder = full_ngh_finder
   test_acc, test_ap, test_auc = eval_edge_prediction(model=tgn,
                                                     negative_edge_sampler=test_rand_sampler,
                                                     data=test_data,
                                                     n_neighbors=NUM_NEIGHBORS)
-
-  if USE_MEMORY:
-    tgn.memory.restore_memory(val_memory_backup)
-
   # Test on unseen nodes
   nn_test_acc, nn_test_ap, nn_test_auc = eval_edge_prediction(model=tgn,
                                                                           negative_edge_sampler=nn_test_rand_sampler,
@@ -392,24 +253,3 @@ for i in range(args.n_runs):
                   f"{nn_test_acc:.4f}", f"{nn_test_auc:.4f}", f"{nn_test_ap:.4f}"]
   loguru1.log("INFO2", '\t'.join(info2_message))
 
-  # logger.info(
-  #   'Test statistics: Old nodes -- auc: {}, ap: {}'.format(test_auc, test_ap))
-  # logger.info(
-  #   'Test statistics: New nodes -- auc: {}, ap: {}'.format(nn_test_auc, nn_test_ap))
-  # # Save results for this run
-  # pickle.dump({
-  #   "val_aps": val_aps,
-  #   "new_nodes_val_aps": new_nodes_val_aps,
-  #   "test_ap": test_ap,
-  #   "new_node_test_ap": nn_test_ap,
-  #   "epoch_times": epoch_times,
-  #   "train_losses": train_losses,
-  #   "total_epoch_times": total_epoch_times
-  # }, open(results_path, "wb"))
-
-  logger.info('Saving TGN model')
-  if USE_MEMORY:
-    # Restore memory at the end of validation (save a model which is ready for testing)
-    tgn.memory.restore_memory(val_memory_backup)
-  torch.save(tgn.state_dict(), MODEL_SAVE_PATH)
-  logger.info('TGN model saved')

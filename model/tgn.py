@@ -14,16 +14,16 @@ from model.time_encoding import TimeEncode
 
 class TGN(torch.nn.Module):
   def __init__(self, neighbor_finder, node_features, edge_features, device, n_layers=2,
-               n_heads=2, dropout=0.1, use_memory=False,
-               memory_update_at_start=True, message_dimension=100,
-               memory_dimension=500, embedding_module_type="graph_attention",
-               message_function="mlp",
-               mean_time_shift_src=0, std_time_shift_src=1, mean_time_shift_dst=0,
-               std_time_shift_dst=1, n_neighbors=None, aggregator_type="last",
-               memory_updater_type="gru",
-               use_destination_embedding_in_message=False,
-               use_source_embedding_in_message=False,
-               dyrep=False):
+              n_heads=2, dropout=0.1, use_memory=False,
+              memory_update_at_start=True, message_dimension=100,
+              memory_dimension=500, embedding_module_type="graph_attention",
+              message_function="mlp",
+              mean_time_shift_src=0, std_time_shift_src=1, mean_time_shift_dst=0,
+              std_time_shift_dst=1, n_neighbors=None, aggregator_type="last",
+              memory_updater_type="gru",
+              use_destination_embedding_in_message=False,
+              use_source_embedding_in_message=False,
+              dyrep=False):
     super(TGN, self).__init__()
 
     self.n_layers = n_layers
@@ -56,14 +56,14 @@ class TGN(torch.nn.Module):
     if self.use_memory:
       self.memory_dimension = memory_dimension
       self.memory_update_at_start = memory_update_at_start
-      raw_message_dimension = 2 * self.memory_dimension + self.n_edge_features + \
-                              self.time_encoder.dimension
+
+      raw_message_dimension = 2 * self.memory_dimension + self.n_edge_features + self.time_encoder.dimension
       message_dimension = message_dimension if message_function != "identity" else raw_message_dimension
       self.memory = Memory(n_nodes=self.n_nodes,
-                           memory_dimension=self.memory_dimension,
-                           input_dimension=message_dimension,
-                           message_dimension=message_dimension,
-                           device=device)
+                          memory_dimension=self.memory_dimension,
+                          input_dimension=message_dimension,
+                          message_dimension=message_dimension,
+                          device=device)
       self.message_aggregator = get_message_aggregator(aggregator_type=aggregator_type,
                                                        device=device)
       self.message_function = get_message_function(module_type=message_function,

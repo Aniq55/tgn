@@ -13,7 +13,7 @@ class EmbeddingModule(nn.Module):
     super(EmbeddingModule, self).__init__()
     self.node_features = node_features
     self.edge_features = edge_features
-    # self.memory = memory
+    self.memory = memory
     self.neighbor_finder = neighbor_finder
     self.time_encoder = time_encoder
     self.n_layers = n_layers
