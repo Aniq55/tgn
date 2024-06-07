@@ -25,7 +25,6 @@ MEMORY_DIM_DICT = {
   "Contacts": 172
 }
 
-
 # Define custom log levels
 INFO1_LEVEL = 25
 INFO2_LEVEL = 35
@@ -85,7 +84,6 @@ parser.add_argument('--use_source_embedding_in_message', action='store_true',
                     help='Whether to use the embedding of the source node as part of the message')
 parser.add_argument('--dyrep', action='store_true',
                     help='Whether to run the dyrep model')
-
 
 try:
   args = parser.parse_args()
