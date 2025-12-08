@@ -1,14 +1,15 @@
 #!/bin/bash
 
-datasets=("wikipedia" "uci" "reddit")
-# datasets=("mooc" "Contacts" "enron")
+# datasets=("wikipedia" "uci" "reddit")
+# datasets=("lastfm" "mooc")
+datasets=("ctig_test")
 
 for dataset in "${datasets[@]}" 
 do
     echo "Running on dataset: $dataset"
 
     # real data
-    for sample in {1..10}; do
+    for sample in {1..2}; do
         python train_self_supervised.py --prefix tgn-attn --data "$dataset" --n_runs 1 --modelname TGN
         python train_self_supervised.py --n_epoch 4 --data "$dataset" --n_runs 1 --use_memory --memory_updater rnn --embedding_module time --prefix jodie_rnn --modelname JODIE
     done
@@ -19,12 +20,12 @@ do
         python train_self_supervised.py --distortion "$distort" --data "$dataset" --n_runs 1  --use_memory --memory_updater rnn --embedding_module time --prefix jodie_rnn --modelname JODIE --n_epoch 4
     done
 
-    # distorted data: all samples
-    for sample in {1..10}; do
-        distort="intense_5_${sample}_"
-        python train_self_supervised.py --distortion "$distort" --prefix tgn-attn --data "$dataset" --n_runs 1 --modelname TGN
-        python train_self_supervised.py --distortion "$distort" --data "$dataset" --n_runs 1  --use_memory --memory_updater rnn --embedding_module time --prefix jodie_rnn --modelname JODIE --n_epoch 4
-    done
+    # # distorted data: all samples
+    # for sample in {1..2}; do
+    #     distort="intense_5_${sample}_"
+    #     python train_self_supervised.py --distortion "$distort" --prefix tgn-attn --data "$dataset" --n_runs 1 --modelname TGN
+    #     python train_self_supervised.py --distortion "$distort" --data "$dataset" --n_runs 1  --use_memory --memory_updater rnn --embedding_module time --prefix jodie_rnn --modelname JODIE --n_epoch 4
+    # done
 
 done
 

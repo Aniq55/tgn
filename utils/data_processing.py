@@ -72,9 +72,9 @@ def get_data(dataset_name, distortion='', different_new_nodes_between_val_and_te
   edge_features = np.load(f'/home/chri6578/Documents/gttp/data/{dataset_name}/{distortion}ml_{dataset_name}.npy')
   node_features = np.load(f'/home/chri6578/Documents/gttp/data/{dataset_name}/ml_{dataset_name}_node.npy')
 
-  # val_time, test_time = list(np.quantile(g_df.ts, [0.70, 0.85]))
+  val_time, test_time = list(np.quantile(graph_df.ts, [0.70, 0.85]))
   # val_time , test_time = 1862652.1, 2218288.6 # wikipedia
-  val_time, test_time = split_times[dataset_name]
+  # val_time, test_time = split_times[dataset_name]
   
   
   # graph_df = pd.read_csv('./data/ml_{}.csv'.format(dataset_name))

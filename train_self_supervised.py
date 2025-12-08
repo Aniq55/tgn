@@ -105,7 +105,7 @@ NODE_DIM = args.node_dim
 TIME_DIM = args.time_dim
 USE_MEMORY = args.use_memory
 MESSAGE_DIM = args.message_dim
-MEMORY_DIM = MEMORY_DIM_DICT[DATA]
+MEMORY_DIM = MEMORY_DIM_DICT.get(DATA, 172)
 DISTORTION = args.distortion
 MODEL_NAME = args.modelname
 
