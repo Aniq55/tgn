@@ -76,6 +76,8 @@ BATCH_SIZE = args.bs
 NUM_NEIGHBORS = args.n_degree
 NUM_NEG = 1
 NUM_EPOCH = args.n_epoch
+print(NUM_EPOCH)
+exit()
 NUM_HEADS = args.n_head
 DROP_OUT = args.drop_out
 GPU = args.gpu

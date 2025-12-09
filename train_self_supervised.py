@@ -95,6 +95,7 @@ BATCH_SIZE = args.bs
 NUM_NEIGHBORS = args.n_degree
 NUM_NEG = 1
 NUM_EPOCH = args.n_epoch
+print(NUM_EPOCH)
 NUM_HEADS = args.n_head
 DROP_OUT = args.drop_out
 GPU = args.gpu
@@ -279,6 +280,7 @@ for i in range(args.n_runs):
                                           negative_edge_sampler=val_rand_sampler,
                                           data=val_data,
                                           n_neighbors=NUM_NEIGHBORS)
+    
     if USE_MEMORY:
       val_memory_backup = tgn.memory.backup_memory()
       # Restore memory we had at the end of training to be used when validating on new nodes.
@@ -386,9 +388,9 @@ for i in range(args.n_runs):
   info2_message = [MODEL_NAME, DISTORTION_A, DISTORTION_B, "Test", "tdv",
                   f"{test_acc:.4f}", f"{test_auc:.4f}", f"{test_ap:.4f}"]
   loguru1.log("INFO2", '\t'.join(info2_message))
-  info2_message = [MODEL_NAME, DISTORTION_A, DISTORTION_B, "Test", "idv",
-                  f"{nn_test_acc:.4f}", f"{nn_test_auc:.4f}", f"{nn_test_ap:.4f}"]
-  loguru1.log("INFO2", '\t'.join(info2_message))
+  # info2_message = [MODEL_NAME, DISTORTION_A, DISTORTION_B, "Test", "idv",
+  #                 f"{nn_test_acc:.4f}", f"{nn_test_auc:.4f}", f"{nn_test_ap:.4f}"]
+  # loguru1.log("INFO2", '\t'.join(info2_message))
 
   # logger.info(
   #   'Test statistics: Old nodes -- auc: {}, ap: {}'.format(test_auc, test_ap))
