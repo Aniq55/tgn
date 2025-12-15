@@ -491,7 +491,7 @@ for i in range(args.n_runs):
     #                        f"{other_nn_test_acc:.4f}", f"{other_nn_test_auc:.4f}", f"{other_nn_test_ap:.4f}"]
     #     loguru1.log("INFO2", '\t'.join(map(str, info2_other_new)))
     
-    # TODO: supply the causal model distance as an argument to this file
+    # DONE: supply the causal model distance as an argument to this file
     # make sure we can import the distances.py from CES
     # import sys
     # from pathlib import Path
@@ -505,7 +505,7 @@ for i in range(args.n_runs):
         sys.path.insert(0, str(ANIQ_DIR))
 
     # then do normal package import
-    from CES.distances import distance_empirical
+    from CES.distances import distance_empirical, oracle_accuracy_neg_sample
 
     PARAM0="ctig_oracle"
     PARAMDAGGER="ctig_dagger"
@@ -514,10 +514,21 @@ for i in range(args.n_runs):
     # MEASURE: \bar{d}){0, dagger} through C_0, C_dagger 
     bar_d_0_dagger = distance_empirical(PARAM0, PARAMDAGGER, T=1000, n_iters=10)
     
+    
+    # MEASURE: acc_0^0, acc_0^dagger
+    acc_oracle = oracle_accuracy_neg_sample(PARAM0, PARAM0)
+    acc_dagger = oracle_accuracy_neg_sample(PARAM0, PARAMDAGGER)
+    
+    
     # UNIFIED LOGGING:
     # MODEL_NAME, O_AUC O_AP D_AUC D_AP distance
-    info_combined = [MODEL_NAME, "Test", "tdv", f"{bar_d_0_dagger:.4f}",
-                     f"{test_auc:.4f}", f"{test_ap:.4f}", f"{other_test_auc:.4f}", f"{other_test_ap:.4f}"]
+    info_combined = [MODEL_NAME, "Test", "tdv", 
+                     f"{bar_d_0_dagger:.4f}",                     # \bar{d}){0, dagger}
+                     f"{acc_oracle:.4f}", f"{acc_dagger:.4f}",    # acc_0^0, acc_0^dagger
+                     f"{test_auc:.4f}",f"{other_test_auc:.4f}",   # AUC_star^0, AUC_star^dagger
+                     f"{test_ap:.4f}", f"{other_test_ap:.4f}"]    # AP_star^0, AP_star^dagger
+    
+    # TODO: also include the results of the oracle test, with negative sampling
     
     loguru1.log("INFO2", '\t'.join(map(str, info_combined)))
 
