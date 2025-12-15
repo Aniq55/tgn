@@ -113,8 +113,8 @@ DISTORTION = args.distortion
 MODEL_NAME = args.modelname
 LOAD_MODEL = args.loadmodel
 
-LOG_FILE_val = f"/home/chri6578/Documents/gttp/logs/evalcheck/{DATA}_val.log"
-LOG_FILE_test = f"/home/chri6578/Documents/gttp/logs/evalcheck/{DATA}_test.log"
+LOG_FILE_val = f"/home/chri6578/Documents/aniq/tgn/logs/{DATA}_val.log"
+LOG_FILE_test = f"/home/chri6578/Documents/aniq/tgn/logs/{DATA}_test.log"
 
 loguru1.add(LOG_FILE_val, level=INFO1_LEVEL, format="{message}", filter=lambda record: record["level"].name == "INFO1")
 loguru1.add(LOG_FILE_test, level=INFO2_LEVEL, format="{message}", filter=lambda record: record["level"].name == "INFO2")

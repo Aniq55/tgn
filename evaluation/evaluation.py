@@ -37,6 +37,7 @@ def eval_edge_prediction(model, negative_edge_sampler, data, n_neighbors, batch_
                                                             negative_samples, timestamps_batch,
                                                             edge_idxs_batch, n_neighbors)
 
+      # problematic bit
       pred_score = np.concatenate([(pos_prob).cpu().numpy(), (neg_prob).cpu().numpy()])
       true_label = np.concatenate([np.ones(size), np.zeros(size)])
       pred_label = pred_score > 0.5

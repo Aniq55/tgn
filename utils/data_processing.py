@@ -65,14 +65,21 @@ def get_data_node_classification(dataset_name, use_validation=False):
   return full_data, node_features, edge_features, train_data, val_data, test_data
 
 
-def get_data(dataset_name, distortion='', different_new_nodes_between_val_and_test=False, randomize_features=False):
+def get_data(dataset_name, distortion='', split_time=None, different_new_nodes_between_val_and_test=False, randomize_features=False):
   ### Load data and train val test split
   
-  graph_df = pd.read_csv(f'/home/chri6578/Documents/gttp/data/{dataset_name}/{distortion}ml_{dataset_name}.csv')
-  edge_features = np.load(f'/home/chri6578/Documents/gttp/data/{dataset_name}/{distortion}ml_{dataset_name}.npy')
-  node_features = np.load(f'/home/chri6578/Documents/gttp/data/{dataset_name}/ml_{dataset_name}_node.npy')
+  graph_df = pd.read_csv(f'/home/chri6578/Documents/aniq/CES/datasets/{distortion}ml_{dataset_name}.csv')
+  edge_features = np.load(f'/home/chri6578/Documents/aniq/CES/datasets/{distortion}ml_{dataset_name}.npy')
+  node_features = np.load(f'/home/chri6578/Documents/aniq/CES/datasets/ml_{dataset_name}_node.npy')
 
-  val_time, test_time = list(np.quantile(graph_df.ts, [0.70, 0.85]))
+
+  if split_time is None:
+    val_time, test_time = list(np.quantile(graph_df.ts, [0.70, 0.85]))
+    
+  else:
+    val_time = 0.5*split_time
+    test_time = split_time
+    # val_time, test_time = list(np.quantile(graph_df.ts, [0.70, 0.9]))
   # val_time , test_time = 1862652.1, 2218288.6 # wikipedia
   # val_time, test_time = split_times[dataset_name]
   
