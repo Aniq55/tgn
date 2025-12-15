@@ -492,12 +492,32 @@ for i in range(args.n_runs):
     #     loguru1.log("INFO2", '\t'.join(map(str, info2_other_new)))
     
     # TODO: supply the causal model distance as an argument to this file
+    # make sure we can import the distances.py from CES
+    # import sys
+    # from pathlib import Path
+    # CES_DIR = Path("/home/chri6578/Documents/aniq/CES").resolve()
+    # if str(CES_DIR) not in sys.path:
+    #     sys.path.insert(0, str(CES_DIR))
+    # from distances import distance_empirical
+    
+    ANIQ_DIR = Path("/home/chri6578/Documents/aniq").resolve()
+    if str(ANIQ_DIR) not in sys.path:
+        sys.path.insert(0, str(ANIQ_DIR))
+
+    # then do normal package import
+    from CES.distances import distance_empirical
+
+    PARAM0="ctig_oracle"
+    PARAMDAGGER="ctig_dagger"
+
+
+    # MEASURE: \bar{d}){0, dagger} through C_0, C_dagger 
+    bar_d_0_dagger = distance_empirical(PARAM0, PARAMDAGGER, T=1000, n_iters=10)
     
     # UNIFIED LOGGING:
     # MODEL_NAME, O_AUC O_AP D_AUC D_AP distance
-    info_combined = [MODEL_NAME, "Test", "tdv",
-                     f"{test_auc:.4f}", f"{test_ap:.4f}",
-                     f"{other_test_auc:.4f}", f"{other_test_ap:.4f}"]
+    info_combined = [MODEL_NAME, "Test", "tdv", f"{bar_d_0_dagger:.4f}",
+                     f"{test_auc:.4f}", f"{test_ap:.4f}", f"{other_test_auc:.4f}", f"{other_test_ap:.4f}"]
     
     loguru1.log("INFO2", '\t'.join(map(str, info_combined)))
 
