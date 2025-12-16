@@ -507,17 +507,13 @@ for i in range(args.n_runs):
     # then do normal package import
     from CES.distances import distance_empirical, oracle_accuracy_neg_sample
 
-    PARAM0="ctig_oracle"
-    PARAMDAGGER="ctig_dagger"
-
-
     # MEASURE: \bar{d}){0, dagger} through C_0, C_dagger 
-    bar_d_0_dagger = distance_empirical(PARAM0, PARAMDAGGER, T=1000, n_iters=10)
+    bar_d_0_dagger = distance_empirical(DATA, OTHER_DATA, T=1000, n_iters=10)
     
     
     # MEASURE: acc_0^0, acc_0^dagger
-    acc_oracle = oracle_accuracy_neg_sample(PARAM0, PARAM0)
-    acc_dagger = oracle_accuracy_neg_sample(PARAM0, PARAMDAGGER)
+    acc_oracle = oracle_accuracy_neg_sample(DATA, DATA)
+    acc_dagger = oracle_accuracy_neg_sample(DATA, OTHER_DATA)
     
     
     # UNIFIED LOGGING:
